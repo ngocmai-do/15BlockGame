@@ -32,9 +32,9 @@ public class Spel extends JFrame implements ActionListener {
     List<JButton> correctButtonList = new ArrayList<>();
 
     Scanner sc;
-    String fileName = "highscores.txt";
 
-    public Spel() {
+
+    public Spel() throws IOException {
         controlPanel.setLayout(new BoxLayout(controlPanel, BoxLayout.Y_AXIS));
         newGameButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         newGameButton.setMaximumSize(new Dimension(100, 30));
@@ -69,13 +69,13 @@ public class Spel extends JFrame implements ActionListener {
             correctButtonList.add(buttonList.get(i));
         }
 
-        highScorePrinter();
+        HighScore.highScorePrinter(highScoreBoard);
         highScorePanel.add(highScoreBoard);
 
 
         timer = new Timer(100, e -> {
             elapsedTime += 100;
-            currentTime.setText("Timer: " + formatTime(elapsedTime));
+            currentTime.setText("Timer: " + HighScore.formatTime(elapsedTime));
         });
 
         controlPanel.setPreferredSize(new Dimension(100, 400));
@@ -102,7 +102,11 @@ public class Spel extends JFrame implements ActionListener {
             gameGenerate();
         } else if (buttonList.contains((JButton) e.getSource())) {
             JButton selectedButton = (JButton) e.getSource();
-            movingButton(selectedButton);
+            try {
+                movingButton(selectedButton);
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
         }
         if (e.getSource() == startGameButton) {
             timer.start();
@@ -143,7 +147,7 @@ public class Spel extends JFrame implements ActionListener {
     // if they are the same row then we check their column, if the difference of column is 1 -> they are next to each other and can be swapped
     // otherwise they are not to be swapped (same logic if it is on the same column, then we check their row)
 
-    public void movingButton(JButton selectedButton) {
+    public void movingButton(JButton selectedButton) throws IOException {
 
         int buttonIndex = buttonList.indexOf(selectedButton);
         int buttonIndexRow = buttonIndex / 4;
@@ -171,37 +175,9 @@ public class Spel extends JFrame implements ActionListener {
         if (hasWon) {
             String name = JOptionPane.showInputDialog(null, "Congratulations! You won! What's your name?");
             timer.stop();
-            highScoreWriter(elapsedTime, name);
-            highScorePrinter();
+            HighScore.highScoreWriter(elapsedTime, name);
+            HighScore.highScorePrinter(highScoreBoard);
         }
     }
 
-    public void highScoreWriter (int time, String name) {
-        try (FileWriter writer = new FileWriter(fileName, true)) {
-            writer.write(name + " " + formatTime(time) + "\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void highScorePrinter () {
-        try {
-            List<String> lines = Files.readAllLines(Paths.get(fileName));
-            highScoreBoard.removeAll();
-            highScoreBoard.setText("High Scores:\n");
-            for (String line : lines) {
-                highScoreBoard.append(line);
-            }
-
-        } catch (IOException e) {
-            IO.println("Could not read file: " + e.getMessage());
-        }
-    }
-
-    public String formatTime (int time) {
-        int seconds = (time / 1000) % 60;
-        int minutes = (time / 60000);
-        int tenths = (time / 100) % 10;
-        return String.format("%02d:%02d.%d", minutes, seconds, tenths);
-    }
 }
